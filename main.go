@@ -10,7 +10,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mrbri/pokedexcli/catch"
 	"github.com/mrbri/pokedexcli/explore"
+	"github.com/mrbri/pokedexcli/inspect"
 	"github.com/mrbri/pokedexcli/internal/pokecache"
 )
 
@@ -64,6 +66,33 @@ var commands = map[string]cliCommand{
 		// callback:    commandExit,
 	},
 }
+
+// Name: pidgey
+// Height: 3
+// Weight: 18
+// Stats:
+//   -hp: 40
+//   -attack: 45
+//   -defense: 40
+//   -special-attack: 35
+//   -special-defense: 35
+//   -speed: 56
+// Types:
+//   - normal
+//   - flying
+
+type Pokemon struct {
+	Name   string
+	Height int
+	Weight int
+	Stats  struct {
+		hp      int
+		attack  int
+		defense int
+	}
+}
+
+var pokedex = map[string]Pokemon
 
 func main() {
 	cache := pokecache.NewCache()
@@ -189,6 +218,32 @@ func main() {
 				fmt.Println(enc.Pokemon.Name)
 			}
 
+		} else if strings.HasPrefix(line, "catch") {
+			catchName := strings.Split(line, " ")
+			catchUrl := fmt.Sprintf("https://pokeapi.co/api/v2/pokemon/%s/", catchName[1])
+
+			fmt.Println(catchUrl)
+			res, err := http.Get(catchUrl)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			body, err := io.ReadAll(res.Body)
+			res.Body.Close()
+			if res.StatusCode > 299 {
+				log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
+			}
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			poke := catch.Pokemon{}
+			err = json.Unmarshal(body, &poke)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Printf("Base Experience: %d\n", poke.BaseExperience)
+		} else if strings.HasPrefix(line, "inspect") {
 		}
 	}
 }
