@@ -8,7 +8,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
+	"github.com/mrbri/pokedexcli/explore"
 	"github.com/mrbri/pokedexcli/internal/pokecache"
 )
 
@@ -71,7 +73,6 @@ func main() {
 	nextUrl := ""
 
 	for {
-		pokecache.ThisIsATest()
 		fmt.Print("pokedex>")
 		scanner := bufio.NewScanner(os.Stdin)
 
@@ -82,7 +83,7 @@ func main() {
 			return
 		} else if line == "help" {
 			fmt.Println("\nWelcome to Pokedex!")
-			fmt.Println("Usage:\n")
+			fmt.Printf("Usage:\n\n")
 			for k, v := range commands {
 				fmt.Printf("%s: %s\n", k, v.description)
 			}
@@ -159,6 +160,35 @@ func main() {
 			for _, h := range history {
 				fmt.Printf("%v+\n", h)
 			}
+		} else if strings.HasPrefix(line, "explore") {
+			explComm := strings.Split(line, " ")
+			exploreUrl := fmt.Sprintf("https://pokeapi.co/api/v2/location-area/%s/", explComm[1])
+
+			fmt.Println(exploreUrl)
+			res, err := http.Get(exploreUrl)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			body, err := io.ReadAll(res.Body)
+			res.Body.Close()
+			if res.StatusCode > 299 {
+				log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
+			}
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			explArea := explore.ExploreArea{}
+			err = json.Unmarshal(body, &explArea)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			for _, enc := range explArea.PokemonEncounters {
+				fmt.Println(enc.Pokemon.Name)
+			}
+
 		}
 	}
 }
