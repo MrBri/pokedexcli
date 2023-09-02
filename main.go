@@ -12,7 +12,7 @@ import (
 
 	"github.com/mrbri/pokedexcli/catch"
 	"github.com/mrbri/pokedexcli/explore"
-	"github.com/mrbri/pokedexcli/inspect"
+	// "github.com/mrbri/pokedexcli/inspect"
 	"github.com/mrbri/pokedexcli/internal/pokecache"
 )
 
@@ -85,14 +85,11 @@ type Pokemon struct {
 	Name   string
 	Height int
 	Weight int
-	Stats  struct {
-		hp      int
-		attack  int
-		defense int
-	}
+	Stats  map[string]int
+	Types  []string
 }
 
-var pokedex = map[string]Pokemon
+var pokedex map[string]Pokemon
 
 func main() {
 	cache := pokecache.NewCache()
@@ -100,6 +97,9 @@ func main() {
 	var history stack
 	// history.push("https://pokeapi.co/api/v2/location-area/?limit=20")
 	nextUrl := ""
+	var stats catch.Stats
+
+	pokedex := make(map[string]*Pokemon)
 
 	for {
 		fmt.Print("pokedex>")
@@ -237,13 +237,40 @@ func main() {
 				log.Fatal(err)
 			}
 
-			poke := catch.Pokemon{}
-			err = json.Unmarshal(body, &poke)
+			// poke := catch.Pokemon{}
+
+			err = json.Unmarshal(body, &stats)
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Printf("Base Experience: %d\n", poke.BaseExperience)
+			newPoke := &Pokemon{
+				Name:   stats.Name,
+				Height: stats.Height,
+				Weight: stats.Weight,
+			}
+			newPoke.Stats = make(map[string]int)
+			pokedex[stats.Name] = newPoke
+
+			for _, t := range stats.Types {
+				fmt.Println(t.Type.Name)
+				pokedex[stats.Name].Types = append(pokedex[stats.Name].Types, t.Type.Name)
+			}
+			fmt.Println(pokedex[stats.Name].Types)
+			// fmt.Printf("%#v\n", stats)
+			fmt.Println("Stats")
+			for _, s := range stats.Stats {
+				newPoke.Stats[s.Stat.Name] = s.BaseStat
+				fmt.Println(s.BaseStat, s.Stat.Name)
+			}
 		} else if strings.HasPrefix(line, "inspect") {
+			fmt.Println("inspect")
+			inspectName := strings.Split(line, " ")
+			fmt.Printf("%#v\n", pokedex[inspectName[1]])
+		} else if line == "pokedex" {
+			for k := range pokedex {
+				fmt.Printf("-%s\n", k)
+			}
 		}
+
 	}
 }
